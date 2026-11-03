@@ -92,12 +92,14 @@ function flowers(){
   box(s.world,8.9,.18,5.9,0,.05,0,mat('#a5ad99'));
   const bed=mat('#727964');
   for(let row=0;row<3;row++){
-    box(s.world,8.1,.18,1.4,0,.16,-1.9+row*1.8,bed);
-    for(let i=0;i<11;i++){
-      const f=lisianthus(s.world,-3.65+i*.73+(random()-.5)*.2,-1.9+row*1.8+(random()-.5)*.75,1.3+random()*1.45,i%4);
+    for(const side of [-1,1])box(s.world,3.15,.18,1.4,side*2.45,.16,-1.9+row*1.8,bed);
+    for(let i=0;i<10;i++){
+      const x=i<5?-3.9+i*.65:1.3+(i-5)*.65;
+      const f=lisianthus(s.world,x+(random()-.5)*.2,-1.9+row*1.8+(random()-.5)*.7,.85+random()*1.5,i%4);
       s.animated.push({node:f,phase:random()*6,type:'flower'});
     }
   }
+  enrichFlowers(s);
   return s;
 }
 function tree(parent,x,z,size=1,purple=false){
@@ -145,6 +147,7 @@ function road(){
     const p=mesh(new T.PlaneGeometry(.045,.08),mat('#c7b5df',{side:T.DoubleSide}),s.world,(random()-.5)*9,random()*5,(random()-.5)*6);
     s.animated.push({node:p,phase:random()*7,type:'petal'});
   }
+  enrichRoad(s);
   return s;
 }
 function restaurant(){
@@ -199,7 +202,137 @@ function restaurant(){
     }
   }
   tree(s.world,-4,-1.8,.8,true);
+  enrichRestaurant(s);
   return s;
+}
+
+// 小物件保持统一比例；共用材质，减少手机上的材质切换。
+const stone=mat('#b9afa4'),clay=mat('#ad877b'),cream=mat('#e3d8c0'),green=mat('#849383');
+function bench(parent,x,z,angle=0){
+  const g=new T.Group();g.position.set(x,.13,z);g.rotation.y=angle;parent.add(g);
+  for(let i=0;i<4;i++){box(g,1.35,.055,.09,0,.4,i*.105,materials.wood);box(g,1.35,.085,.045,0,.63+i*.105,-.08,materials.wood);}
+  for(const dx of [-.5,.5]){rod(g,[dx,0,0],[dx,.98,-.08],.028,materials.metal);rod(g,[dx,0,.31],[dx,.4,.31],.028,materials.metal);}
+}
+function pot(parent,x,z,size=.35){
+  mesh(new T.CylinderGeometry(size,size*.7,size*1.2,12),clay,parent,x,size*.6,z);
+  for(let i=0;i<7;i++){
+    const a=i*2.4;const leaf=mesh(petalGeometry(size*1.9,i),materials.leaf,parent,x,size,z);
+    leaf.rotation.set(.4,a,.35);leaf.scale.x=.5;
+  }
+}
+function bicycle(parent,x,z,color){
+  const g=new T.Group();g.position.set(x,.14,z);parent.add(g);const frame=mat(color);
+  for(const dx of [-.49,.49]){
+    mesh(new T.TorusGeometry(.31,.022,7,22),materials.dark,g,dx,.33,0);
+    for(let i=0;i<8;i++){const a=i*Math.PI/4;rod(g,[dx,.33,0],[dx+Math.cos(a)*.3,.33+Math.sin(a)*.3,0],.004,materials.brass);}
+  }
+  for(const [a,b] of [[[ -.49,.33,0],[-.13,.77,0]],[[-.13,.77,0],[.13,.33,0]],[[.13,.33,0],[-.49,.33,0]],[[-.13,.77,0],[.36,.77,0]],[[.36,.77,0],[.13,.33,0]],[[.36,.77,0],[.49,.33,0]]])rod(g,a,b,.018,frame);
+  box(g,.24,.045,.16,-.13,.82,0,materials.dark);rod(g,[.36,.75,0],[.34,.95,0],.015,materials.metal);rod(g,[.34,.95,-.15],[.34,.95,.15],.015,materials.metal);
+}
+function enrichFlowers(s){
+  // 曲折步石把花圃连成可以走进去的小花园。
+  for(let i=0;i<12;i++){
+    const x=Math.sin(i*.65)*.22;
+    const p=mesh(new T.CylinderGeometry(.39,.42,.07,7),stone,s.world,x,.22,2.65-i*.45);p.scale.z=.65;p.rotation.y=i*.7;
+  }
+  for(const x of [-4.3,4.3])for(let i=0;i<12;i++)box(s.world,.25,.055,.32,x,.23,-2.7+i*.48,cream);
+  // 花园后方的木拱架和藤蔓，前后景形成层次。
+  for(const x of [-.85,.85])box(s.world,.09,3.3,.1,x,1.7,-2.85,cream);
+  for(let i=0;i<6;i++)box(s.world,2.05,.07,.13,0,3.24+i*.035,-3.12+i*.13,cream);
+  for(const x of [-.85,.85])for(let i=0;i<11;i++){
+    const y=.7+i*.24;const leaf=mesh(petalGeometry(.34,i),materials.leaf,s.world,x+Math.sin(i)*.1,y,-2.82);leaf.rotation.set(.4,i*2,.7);
+    if(i%3===0)ball(s.world,.075,x+.13,y,-2.7,petalMats[2]);
+  }
+  bench(s.world,-3.5,2.55);pot(s.world,3.8,2.6,.28);
+  // 角落里的浇水壶、备用花盆与园艺工具。
+  const can=mat('#809e9b');mesh(new T.CylinderGeometry(.21,.22,.35,14),can,s.world,2.7,.42,2.7);
+  rod(s.world,[2.8,.43,2.7],[3.15,.65,2.7],.055,can,.035);
+  const handle=mesh(new T.TorusGeometry(.2,.025,6,14,Math.PI*1.5),can,s.world,2.52,.5,2.7);handle.rotation.z=.8;
+  pot(s.world,3.3,2.85,.18);rod(s.world,[3.8,.23,2.2],[3.6,.45,1.5],.025,materials.wood);
+  for(let i=0;i<42;i++){
+    const x=(random()-.5)*8,z=(random()-.5)*5;
+    if(Math.abs(x)<.7)continue;
+    for(let j=0;j<3;j++)rod(s.world,[x,.22,z],[x+(random()-.5)*.13,.35+random()*.2,z],.008,materials.leaf);
+  }
+  // 两只蝴蝶在花丛上方缓慢盘旋。
+  for(let i=0;i<2;i++){
+    const g=new T.Group();g.position.set(i?2:-2,2.5,i?-1:1);s.world.add(g);
+    for(const side of [-1,1]){const wing=mesh(new T.CircleGeometry(.12,9),mat(i?'#e8d0b7':'#bdb0de',{side:T.DoubleSide}),g,side*.09,0,0);wing.scale.y=.65;}
+    s.animated.push({node:g,type:'butterfly',phase:i*3,origin:g.position.clone()});
+  }
+}
+function enrichRoad(s){
+  // 校园门楼位于后方，保留道路和树木作为主体。
+  for(const x of [-.95,.95])box(s.world,.32,2.1,.45,x,1.05,-2.92,stone);
+  box(s.world,2.5,.4,.55,0,2.2,-2.92,materials.metal);
+  label(s.world,'校园',1.25,.27,0,2.2,-2.63);
+  for(const x of [-3.7,-1.2,1.3,3.8]){
+    box(s.world,1.15,.12,.95,x,.13,-2.3,stone);
+    for(let i=0;i<6;i++)ball(s.world,.19,x+(random()-.5)*.8,.32,-2.3+(random()-.5)*.5,green,1,.65,1);
+  }
+  bicycle(s.world,-2.7,-.6,'#b6a0bc');bicycle(s.world,-1.25,-.65,'#94b5b0');
+  for(let i=0;i<5;i++)box(s.world,.25,.015,2.4,-3.9+i*.43,.04,.8,cream);
+  // 垃圾桶、路牌、盲道、井盖与雨水口。
+  for(const x of [-.15,.3]){box(s.world,.35,.62,.36,x,.44,-.67,materials.metal);box(s.world,.37,.08,.38,x,.79,-.67,green);}
+  rod(s.world,[4.2,.1,2.8],[4.2,2.15,2.8],.025,materials.metal);
+  label(s.world,'学校 →',1.05,.3,4.2,2.1,2.82,'#5a746c','#ede7d2');
+  for(let i=0;i<32;i++)box(s.world,.19,.015,.16,-4.7+i*.3,.15,2.62,mat('#c6b792'));
+  const cover=mesh(new T.CylinderGeometry(.23,.23,.012,20),materials.metal,s.world,1.2,.038,1.8);
+  for(let i=0;i<4;i++)box(s.world,.28,.012,.018,1.2,.048,1.7+i*.06,materials.brass);
+  for(const x of [-2,2])for(let i=0;i<6;i++)box(s.world,.018,.015,.25,x+i*.04,.05,2.34,materials.dark);
+  // 栅栏后透出一段教学楼窗户，避免单一的空背景。
+  box(s.world,2.6,2.6,.7,3.2,1.3,-3.05,mat('#9d9aaa'));
+  for(let row=0;row<3;row++)for(let col=0;col<4;col++){
+    box(s.world,.36,.43,.025,2.25+col*.6,.55+row*.72,-2.68,col%3===row?materials.warm:materials.dark);
+    box(s.world,.025,.43,.04,2.25+col*.6,.55+row*.72,-2.65,materials.brass);
+  }
+  bench(s.world,1.5,2.75,Math.PI);
+  for(let i=0;i<28;i++){const leaf=mesh(new T.CircleGeometry(.045,5),mat('#b8a19f',{side:T.DoubleSide}),s.world,(random()-.5)*9,.155,-.8+random()*.4);leaf.rotation.x=-Math.PI/2;}
+}
+function enrichRestaurant(s){
+  // 邻铺以窄立面衬托饭馆，形成真正的小巷。
+  box(s.world,1.15,3.25,2,-3.8,1.65,-.7,mat('#91939a',{map:texture('#9a9695')}));
+  box(s.world,1.15,2.2,.06,-3.8,1.3,.33,materials.metal);
+  for(let i=0;i<19;i++)box(s.world,1.12,.018,.035,-3.8,.3+i*.11,.37,stone);
+  label(s.world,'杂货',1,.35,-3.8,2.8,.39,'#797963','#f4e3c2');
+  box(s.world,.72,.5,.35,2.6,3.05,1.16,cream);
+  const fan=mesh(new T.TorusGeometry(.16,.012,6,16),materials.metal,s.world,2.6,3.05,1.345);
+  for(let i=0;i<6;i++){const a=i*Math.PI/3;rod(s.world,[2.6,3.05,1.35],[2.6+Math.cos(a)*.15,3.05+Math.sin(a)*.15,1.35],.009,materials.metal);}
+  rod(s.world,[3.12,3.5,1.05],[3.12,.25,1.05],.03,materials.metal);
+  // 墙面菜单、门口黑板、门帘及灯笼。
+  label(s.world,'小炒 · 热汤',1.65,.32,-1.5,2.65,1.03,'#7d6256','#f4dfb7');
+  const board=box(s.world,.75,.95,.08,1.4,.65,2,materials.wood);board.rotation.x=-.12;
+  label(s.world,'今日小炒',.65,.25,1.4,.91,2.07,'#394943','#f0e4c9');
+  label(s.world,'热饭热菜',.65,.22,1.4,.61,2.1,'#394943','#e7d6b3');
+  for(const x of [-.35,-.12,.12,.35])box(s.world,.21,.55,.035,x,2.6,1.02,mat('#a39baf'));
+  for(const x of [-2.35,3.1]){
+    rod(s.world,[x,3.5,1.2],[x,3,1.2],.012,materials.metal);
+    ball(s.world,.19,x,2.8,1.2,mat('#bd7765',{emissive:'#d39862',emissiveIntensity:.4}),1,1.35,1);
+    rod(s.world,[x,2.55,1.2],[x,2.36,1.2],.012,materials.brass);
+  }
+  // 桌上碗筷、杯子、调味罐和后墙置物架。
+  for(const x of [-1.45,1.85]){
+    for(const dx of [-.25,.25]){
+      mesh(new T.CylinderGeometry(.09,.045,.08,14,1,true),cream,s.world,x+dx,1.025,-.8);
+      for(const shift of [0,.035])rod(s.world,[x+dx-.12,1.01,-.53+shift],[x+dx+.1,1.01,-.53+shift],.007,materials.wood);
+    }
+    mesh(new T.CylinderGeometry(.04,.04,.12,10),clay,s.world,x,1.04,-.95);
+  }
+  for(let row=0;row<2;row++){
+    box(s.world,2.5,.07,.32,1.2,1.65+row*.65,-2.2,materials.wood);
+    for(let i=0;i<7;i++)mesh(new T.CylinderGeometry(.065,.065,.23,9),i%2?green:clay,s.world,.2+i*.31,1.8+row*.65,-2.18);
+  }
+  // 门外小桌、摞起的板凳、煤气瓶与墙根杂草。
+  mesh(new T.CylinderGeometry(.38,.38,.07,20),materials.wood,s.world,-1.5,.73,2.1);
+  rod(s.world,[-1.5,.15,2.1],[-1.5,.7,2.1],.055,materials.metal);
+  for(const x of [-2.15,-.85]){box(s.world,.33,.07,.33,x,.42,2.15,materials.wood);for(const dx of [-.12,.12])rod(s.world,[x+dx,.1,2.15],[x+dx,.4,2.15],.025,materials.wood);}
+  mesh(new T.CylinderGeometry(.17,.17,.55,12),green,s.world,3.65,.38,-.1);
+  box(s.world,.9,.22,.55,-3.8,.23,1.2,materials.wood);
+  for(let i=0;i<10;i++)ball(s.world,.065,-4.1+random()*.6,.39,1.05+random()*.3,i%2?green:clay);
+  // 架空电线与一串暖灯串，将巷道上方也纳入画面。
+  const curve=new T.QuadraticBezierCurve3(new T.Vector3(-4.5,3.6,1.9),new T.Vector3(0,2.9,2),new T.Vector3(4.2,3.8,1.9));
+  mesh(new T.TubeGeometry(curve,24,.012,4,false),materials.metal,s.world);
+  for(let i=1;i<13;i++){const p=curve.getPoint(i/13);ball(s.world,.035,p.x,p.y-.07,p.z,materials.warm);}
 }
 
 const host=document.createElement('div');host.id='diorama-canvas';host.setAttribute('aria-label','立体回忆场景，可左右拖动');document.querySelector('#app').append(host);
@@ -245,6 +378,7 @@ if(renderer){
     for(const a of active.animated){
       if(reduce)continue;
       if(a.type==='flower')a.node.rotation.z=Math.sin(time*.65+a.phase)*.035;
+      else if(a.type==='butterfly'){a.node.position.copy(a.origin);a.node.position.x+=Math.sin(time*.55+a.phase)*.55;a.node.position.y+=Math.sin(time+a.phase)*.2;a.node.rotation.y=time*.3;for(const wing of a.node.children)wing.rotation.y=Math.sin(time*8)*.6;}
       else{a.node.position.y=5-((time*.27+a.phase)%5);a.node.position.x+=Math.sin(time+a.phase)*.0008;a.node.rotation.set(time*.35,a.phase,time*.25);}
     }
     renderer.render(active.scene,camera);
